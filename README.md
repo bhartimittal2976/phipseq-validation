@@ -61,6 +61,8 @@ python scripts/validate_results.py
 
 ## Validation 2: FASTQ-to-candidate Pan-CoV workflow
 
+![FASTQ-to-candidate PhIP-Seq validation infographic](assets/phipseq-fastq-validation-infographic.png)
+
 This workflow uses the eight shallow example FASTQ files supplied with
 PhIP-Flow V1.12:
 
