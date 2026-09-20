@@ -1,0 +1,4 @@
+sample_id,library_batch,virus,candidate_region_start,candidate_region_end,shared_sequence,overlap_length,supporting_annotations,peptide_ids,tile_starts,max_count,min_zscore,max_zscore,min_library_fold_enrichment,max_library_fold_enrichment
+4,MEGSUB,NL63,61,79,RWRMRRGQRVDLPPKVHFY,19,NL63_01231_nucleocapsid;NL63_91156_nucleocapsid;NL63_ChinaGD01_nucleocapsid;NL63_Kilifi_nucleocapsid,3879;3880;6158;6159;7540;7541;8129;8130,41;61,28,25.9878,31.9545,9.5324,15.8445
+4,MEGSUB,SARS,241,259,QQQGQTVTKKSAAEASKKP,19,SARS_Urbani_nucleocapsid,2072;2073,221;241,22,15.4224,35.2109,21.0697,1443.9969
+5,SUB2,HKU1,21,39,LTNLNEITKPLIEAEKPNL,19,HKU1_N13A_hypothetical_protein_orf8,7512;7513,1;21,15,23.9167,32.0217,6.2895,15.7190

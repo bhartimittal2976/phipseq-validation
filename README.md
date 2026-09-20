@@ -1,81 +1,141 @@
-# PhIP-Flow pipeline Template/Example
+# PhIP-Seq FASTQ validation
 
-In this template we provide a template/example outlining the details of running the [PhIP-Flow](https://github.com/matsengrp/phip-flow) pipeline to obtain the alignments for a phip-seq experiment -- which is organized into the [xarray](http://xarray.pydata.org/en/stable/) format needed to run analysis using [phippery](https://github.com/matsengrp/phippery)
+This repository demonstrates a reproducible FASTQ-to-candidate-region
+PhIP-Seq analysis using the shallow Pan-CoV example dataset bundled with
+[PhIP-Flow](https://github.com/matsengrp/phip-flow).
 
-# Getting started
+This is an exploratory computational validation. It is not a biological or
+clinical validation study.
 
-In order to run the example locally, you should first have [Docker](https://www.docker.com/products/docker-desktop) and [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html) installed locally. This Example was generated with the following versions:
+## Dataset
+
+The analysis uses the eight example FASTQ files supplied with PhIP-Flow
+V1.12:
+
+- two input-library controls;
+- two bead-only controls;
+- four antibody-containing experimental samples.
+
+The peptide library contains 10,047 Pan-CoV and control peptide records.
+PhIP-Flow supplies the example sample table, FASTQ files, and peptide table.
+
+## Workflow
+
+The analysis performs:
+
+1. Sample and peptide-table validation.
+2. FASTQ alignment to the designed oligonucleotide library with Bowtie.
+3. SAM-to-peptide count conversion and alignment QC.
+4. Counts-per-million and size-factor normalization.
+5. Fold enrichment relative to input-library controls.
+6. Z-score modelling relative to bead-only controls.
+7. Adjacent overlapping-tile detection.
+8. Candidate-region visualization.
+
+The final Nextflow execution completed successfully with no failed, aborted,
+pending, or running tasks.
+
+## Requirements
+
+- macOS or Linux
+- Docker
+- Java 17 or later
+- Nextflow 25.10.4
+- Python 3
+
+PhIP-Flow V1.12 was run with Nextflow 25.10.4 because Nextflow 26's stricter
+parser rejects legacy top-level syntax in that workflow release.
+
+## Install the project-local Nextflow version
+
+From the repository root:
 
 ```bash
-(base) ubuntu ~ » docker -v
-Docker version 20.10.1, build 831ebea
-(base) ubuntu ~ » nextflow -v
-nextflow version 20.04.1.5335
+mkdir -p tools
+cd tools
+curl -s https://get.nextflow.io | NXF_VER=25.10.4 bash
+mv nextflow nextflow-25.10.4
+chmod +x nextflow-25.10.4
+cd ..
 ```
 
-Next, you will need to clone this repository (or use it's template to fork), making sure to grab the [phip-flow](https://github.com/matsengrp/phip-flow) pipeline submodule 
+The downloaded executable is ignored by Git.
+
+## Run PhIP-Flow
 
 ```bash
-git clone git@github.com:matsengrp/phip-flow-template.git --recurse-submodules
-cd phip-flow-template
-``` 
+mkdir -p run-pan-cov
+cd run-pan-cov
 
-Nextflow allows for the user to avoid mangling installs for all the various dependencies by using containers for each process. In the config script `phipflow.config.docker` a docker container has been specified for each processing step of the pipeline. Nextflow will automatically pull the containers and run the pipeline with the specified config file with the `nextflow` command
+../tools/nextflow-25.10.4 run matsengrp/phip-flow \
+  -r V1.12 \
+  -profile docker \
+  --run_edgeR false \
+  --run_BEER false \
+  --run_cpm_enr_workflow true \
+  --run_zscore_fit_predict true \
+  -resume
+```
+
+This processes the bundled FASTQs through alignment, peptide counting,
+normalization, fold enrichment, and bead-background Z-score modelling.
+edgeR and BEER are optional analyses and were not used for this validation.
+
+## Call adjacent candidate regions
+
+The library uses 39-amino-acid peptide tiles beginning 20 positions apart.
+Adjacent tiles therefore share a 19-amino-acid sequence.
+
+From the repository root, generate the strict exploratory calls:
 
 ```bash
-nextflow -C phipflow.config.docker run phip-flow/PhIP-Flow.nf
+python3 scripts/call_candidate_regions.py \
+  --wide-dir run-pan-cov/results/wide_data \
+  --out run-pan-cov/results/candidate_regions-z15.csv \
+  --min-z 15 \
+  --min-count 5 \
+  --tile-step 20
 ```
 
-Where `phipflow.config.docker` are your configurations. This will produce something like
+Generate the SVG report:
 
 ```bash
-(base) ubuntu template-test/phip-flow-template ‹master*› » ./run_phip_flow.sh
-N E X T F L O W  ~  version 20.04.1
-Launching `phip-flow/PhIP-Flow.nf` [romantic_bohr] - revision: 44d57f9950
-executor >  local (39)
-[76/c6613f] process > generate_fasta_reference (1) [100%] 1 of 1 ✔
-[01/2aaf25] process > generate_index (1)           [100%] 1 of 1 ✔
-[13/e3f044] process > short_read_alignment (12)    [100%] 12 of 12 ✔
-[a3/c87e4d] process > sam_to_stats (12)            [100%] 12 of 12 ✔
-[2e/95d787] process > sam_to_counts (12)           [100%] 12 of 12 ✔
-[51/5f9134] process > collect_phip_data (1)        [100%] 1 of 1 ✔
-
-10.43user 3.81system 0:51.48elapsed 27%CPU (0avgtext+0avgdata 401948maxresident)k
-0inputs+4536outputs (3major+807788minor)pagefaults 0swaps
+python3 scripts/plot_candidate_regions.py \
+  --wide-dir run-pan-cov/results/wide_data \
+  --candidates run-pan-cov/results/candidate_regions-z15.csv \
+  --out run-pan-cov/results/candidate_regions-z15.svg
 ```
 
-and produce all intermediate file links and corresponding counts [xarray](http://xarray.pydata.org/en/stable/) dataset organized with the sample and peptide metadata tables.
+Both scripts use only the Python standard library.
 
-If you have the [phippery](https://github.com/matsengrp/phippery) python package installed, you can take a look at the results of the example run
+## Strict candidate calls
 
-```python
->>> import phippery
->>> ds = phippery.load("simulation-run.phip")
->>> ds.counts
-<xarray.DataArray 'counts' (peptide_id: 10, sample_id: 12)>
-array([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-       [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]])
-Coordinates:
-  * sample_id   (sample_id) int64 0 1 2 3 4 5 6 7 8 9 10 11
-  * peptide_id  (peptide_id) int64 0 1 2 3 4 5 6 7 8 9
-```
+At `Z >= 15` and raw count `>= 5`, the analysis identified three collapsed
+adjacent-tile candidate regions:
 
-For more about using the python package to query the dataset and analyze the data using a range of methods, see the <TODO>
+- Sample 4: NL63 nucleocapsid, shared region 61-79.
+- Sample 4: SARS nucleocapsid, shared region 241-259.
+- Sample 5: HKU1 ORF8-like protein, shared region 21-39.
 
-# Compute process configurations
+Repeated strain annotations and shared 1a/1ab sequences are collapsed so that
+redundant library records are not counted as independent discoveries.
 
-Nextflow allows for users of a pipeline to avoid interaction with the actual .nf script being run. Rather, the users may generate a config file which allows for uniform process execuation accross compute platforms. While you may run this small simulated example on your laptop - it's often desireable to run the pipeline on a cluster. The `phipflow.config.gizmo` gives an example of how to run the same example on the local Fred Hutch gizmo cluster nodes. To learn more about how to tailor the the configuration script for you own compute system, see the [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html). The should be no reason to seek out containers other than the ones in the config scripts provided here. Just be sure to comment out the `bowtie1.3` container and uncomment the `bowtie2` container address if you wish to switch the alignment tool being used (see below).
+## Outputs
 
-## Pipeline knobs
+The repository retains these compact final outputs:
 
-Currently, the pipeline expects the user to generate their alignment index as well as perform the actual short read alignment using either [Bowtie](http://bowtie-bio.sourceforge.net/index.shtml) or [Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml). The alignment tool and arguments supplied to the alignment call are specified in the configuration file `params` block. When deciding on an alignment tool consider the implications of default behavior, and be sure to use a corresponding container - a public `bowtie2` container is commented out in the configurations files provided.
+- `run-pan-cov/results/candidate_regions.csv`
+- `run-pan-cov/results/candidate_regions-z15.csv`
+- `run-pan-cov/results/candidate_regions-z15.svg`
 
+Regenerable Nextflow work files, logs, wide matrices, binary datasets,
+downloaded executables, raw FASTQ files, and machine-specific resolved
+configuration are excluded from Git.
 
+## Limitations
+
+The example FASTQs contain only a shallow subset of reads and are intended for
+workflow validation. Large fold-enrichment values can result from low peptide
+representation in the input-library controls. The candidate regions must not
+be interpreted as validated antibody epitopes without independent experimental
+evidence.
