@@ -1,0 +1,13 @@
+name: phipseq
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - python=3.11
+  - blast=2.17
+  - pip
+  - pip:
+      - "numpy<2"
+      - "pandas<2"
+      - "git+https://github.com/openvax/phipkit.git@267a9b0bb3b79b3ff416e07ce390e43b84a02be4"

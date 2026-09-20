@@ -1,3 +1,9 @@
+.DS_Store
+*.log
+__pycache__/
+*.pyc
+.gh-cli/
+
 # Nextflow execution cache and logs
 run-pan-cov/work/
 run-pan-cov/.nextflow/
@@ -5,10 +11,8 @@ run-pan-cov/.nextflow.log*
 .nextflow/
 .nextflow.log*
 
-# Downloaded executables
+# Downloaded executables and machine-specific configuration
 tools/
-
-# Machine-specific resolved Nextflow configuration
 resolved-phipflow.config
 
 # Regenerable PhIP-Flow matrices and binary datasets
@@ -20,8 +24,3 @@ run-pan-cov/results/pickle_data/
 *.fastq.gz
 *.fq
 *.fq.gz
-
-# Python and macOS
-__pycache__/
-*.pyc
-.DS_Store
