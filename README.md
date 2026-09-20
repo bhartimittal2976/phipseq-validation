@@ -5,6 +5,8 @@ Phage ImmunoPrecipitation Sequencing (PhIP-Seq) analysis. It uses the synthetic
 example dataset distributed with
 [`openvax/phipkit`](https://github.com/openvax/phipkit).
 
+![PhIP-Seq computational validation infographic](assets/phipseq-validation-linkedin-infographic.png)
+
 ## Result
 
 The complete workflow reproduced the supplied reference results:
